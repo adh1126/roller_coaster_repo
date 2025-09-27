@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1758969601 source:d:\programs\opengl\roller coaster\main.cpp
+	<GL/glut.h>
+	<vector>
+	<cmath>
+	<cstdio>
+	<cstdlib>
+	<ctime>
+
