@@ -214,46 +214,48 @@ void drawTrack() {
 
     // rails: draw two rails offset on either side of the track center along normal
     glDisable(GL_LIGHTING);
-    glLineWidth(4.0f);
+    glLineWidth(5.0f);
     glColor3f(0.2f,0.2f,0.2f);
     glBegin(GL_LINE_STRIP);
-    for (size_t i=0;i<trackPoints.size();++i){
+    for (size_t i=0; i<trackPoints.size(); ++i) {
         Vec3 p = trackPoints[i];
-        Vec3 N = trackNormals[i];
-        Vec3 offset = N * (0.15f);
+        Vec3 T = normalize(trackTangents[i]);
+        Vec3 Up(0,1,0);
+        Vec3 B = normalize(cross(T, Up));   // right side
+        Vec3 offset = B * (0.3f);          // right rail
         glVertex3f(p.x + offset.x, p.y + offset.y, p.z + offset.z);
     }
     glEnd();
 
     glBegin(GL_LINE_STRIP);
-    for (size_t i=0;i<trackPoints.size();++i){
+    for (size_t i=0; i<trackPoints.size(); ++i) {
         Vec3 p = trackPoints[i];
-        Vec3 N = trackNormals[i];
-        Vec3 offset = N * (-0.15f);
+        Vec3 T = normalize(trackTangents[i]);
+        Vec3 Up(0,1,0);
+        Vec3 B = normalize(cross(T, Up));   // right side
+        Vec3 offset = B * (-0.3f);         // left rail
         glVertex3f(p.x + offset.x, p.y + offset.y, p.z + offset.z);
     }
+    glEnd();
+
     glEnd();
     glLineWidth(1.0f);
     glEnable(GL_LIGHTING);
 }
 
-void drawCarriage(const Vec3 &pos, const Vec3 &tan, const Vec3 &normal) {
-    // build local frame: T (forward), N (side), B (up)
-    Vec3 T = normalize(tan);
-    Vec3 N = normalize(normal);
-    Vec3 B = normalize(cross(T, N));
-    // Slightly adjust N,B to be orthonormal
-    N = normalize(cross(B, T));
-    B = normalize(cross(T, N));
+void drawCarriage(const Vec3 &pos, const Vec3 &tan, const Vec3 &) {
+    Vec3 T = normalize(tan);        // forward
+    Vec3 Up(0,1,0);                 // force world up
+    Vec3 B = normalize(cross(T, Up)); // right vector
+    Vec3 N = normalize(cross(B, T));  // recompute true up (orthogonal)
 
-    // Create transformation matrix (3x3 rotation + translation)
-    // Column-major for glMultMatrixf
     float M[16] = {
-        N.x, N.y, N.z, 0.0f,
         B.x, B.y, B.z, 0.0f,
+        N.x, N.y, N.z, 0.0f,
         T.x, T.y, T.z, 0.0f,
         pos.x, pos.y, pos.z, 1.0f
     };
+
 
     glPushMatrix();
     glMultMatrixf(M);
@@ -300,8 +302,8 @@ void keyboard(unsigned char key, int x, int y) {
     switch (key) {
         case 27: exit(0); break;
         case ' ': paused = !paused; break;
-        case '+': speed *= 1.2f; break;
-        case '-': speed *= 0.8f; break;
+        case 'w': case 'W': speed *= 1.2f; break;
+        case 's': case 'S':speed *= 0.8f; break;
         case 'f': case 'F': firstPerson = !firstPerson; break;
         case 'r': case 'R': resetSimulation(); break;
     }
@@ -317,7 +319,7 @@ void display() {
 
     if (firstPerson) {
         // position camera slightly above the track center and a bit behind the carriage center
-        Vec3 camPos = pos + normal * carriageHeight - tan * 0.5f;
+        Vec3 camPos = pos + normal * carriageHeight - tan * -0.3f;
         Vec3 lookAt = pos + tan * 3.0f; // look forward along the track
         myLookAt(camPos, lookAt, normal);
     } else {
@@ -348,7 +350,7 @@ void display() {
       glPushMatrix();
         glLoadIdentity();
         glDisable(GL_LIGHTING);
-        glColor3f(1,1,1);
+        glColor3f(0,0,0);
         char buf[256];
         sprintf(buf, "Mode: %s   Speed: %.3f   t: %.3f   Samples: %zu",
                 firstPerson ? "First-Person (F to toggle)" : "Third-Person (F to toggle)",
